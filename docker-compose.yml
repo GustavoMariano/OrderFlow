@@ -1,0 +1,78 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: orderflow-postgres
+    environment:
+      POSTGRES_DB: orderflow
+      POSTGRES_USER: orderflow
+      POSTGRES_PASSWORD: orderflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo:7
+    container_name: orderflow-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: orderflow-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: orderflow
+      RABBITMQ_DEFAULT_PASS: orderflow
+
+  api:
+    build:
+      context: .
+      dockerfile: OrderFlow.Api/Dockerfile
+    container_name: orderflow-api
+    depends_on:
+      - postgres
+      - mongodb
+      - rabbitmq
+    environment:
+      Postgres__ConnectionString: Host=postgres;Port=5432;Database=orderflow;Username=orderflow;Password=orderflow
+      Mongo__ConnectionString: mongodb://mongodb:27017
+      Mongo__Database: orderflow
+
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: orderflow
+      RabbitMQ__Password: orderflow
+
+      Jwt__SigningKey: SUPER_SECRET_KEY_12345678901234567890
+    ports:
+      - "5000:8080"
+
+  worker:
+    build:
+      context: .
+      dockerfile: OrderFlow.Worker/Dockerfile
+    container_name: orderflow-worker
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - mongodb
+      - rabbitmq
+    environment:
+      Postgres__ConnectionString: Host=postgres;Port=5432;Database=orderflow;Username=orderflow;Password=orderflow
+      Mongo__ConnectionString: mongodb://mongodb:27017
+      Mongo__Database: orderflow
+
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: orderflow
+      RabbitMQ__Password: orderflow
+
+      Jwt__SigningKey: SUPER_SECRET_KEY_12345678901234567890
+
+volumes:
+  postgres_data:
+  mongo_data:

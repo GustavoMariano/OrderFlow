@@ -12,14 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Abstractions\Messaging\" />
     <Folder Include="Abstractions\Time\" />
-    <Folder Include="Abstractions\Security\" />
-    <Folder Include="Abstractions\Persistence\" />
-    <Folder Include="DTOs\" />
-    <Folder Include="Common\" />
-    <Folder Include="UseCases\Auth\" />
-    <Folder Include="UseCases\Orders\" />
   </ItemGroup>
 
 </Project>
