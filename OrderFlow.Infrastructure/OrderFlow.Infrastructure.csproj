@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OrderFlow.Application\OrderFlow.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Logging\Mongo\" />
+    <Folder Include="Messaging\RabbitMQ\" />
+    <Folder Include="DependencyInjection\" />
+    <Folder Include="Persistence\Repositories\" />
+    <Folder Include="Persistence\Postgres\" />
+    <Folder Include="Security\Jwt\" />
+  </ItemGroup>
+
+</Project>

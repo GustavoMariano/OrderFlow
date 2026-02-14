@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OrderFlow.Application\OrderFlow.Application.csproj" />
+    <ProjectReference Include="..\OrderFlow.Infrastructure\OrderFlow.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Configuration\Options\" />
+    <Folder Include="Controllers\AuthController\" />
+    <Folder Include="Controllers\OrdersController\" />
+    <Folder Include="Middleware\ExceptionHandlingMiddleware\" />
+    <Folder Include="DependencyInjection\" />
+  </ItemGroup>
+
+</Project>
