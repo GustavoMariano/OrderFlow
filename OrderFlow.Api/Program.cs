@@ -12,6 +12,19 @@ builder.Services.AddApiSwagger();
 builder.Services.AddUseCases();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+var corsPolicyName = "OrderFlowWeb";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicyName, policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -22,6 +35,8 @@ app.UseSwaggerUI();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseCors(corsPolicyName);
 
 app.MapControllers();
 
