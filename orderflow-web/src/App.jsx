@@ -27,8 +27,8 @@ async function apiFetch(path, { token, method, body } = {}) {
       payload && typeof payload === "object"
         ? payload.detail || payload.title || payload.message || JSON.stringify(payload)
         : typeof payload === "string"
-          ? payload
-          : "";
+        ? payload
+        : "";
 
     throw new Error(`${res.status} ${res.statusText}${backendMessage ? ` - ${backendMessage}` : ""}`);
   }
@@ -71,10 +71,12 @@ function isoShort(value) {
 
 export default function App() {
   const [token, setToken] = usePersistedState("orderflow.token", "");
-  const [email, setEmail] = usePersistedState("orderflow.email", "gustavo@orderflow.dev");
-  const [password, setPassword] = useState("StrongPass123!");
+  const [email, setEmail] = usePersistedState("orderflow.email", "");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [mode, setMode] = useState("login");
 
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -96,24 +98,38 @@ export default function App() {
   async function login() {
     setBusy(true);
     setError("");
+    setSuccess("");
     try {
       const res = await apiFetch("/api/auth/login", {
         method: "POST",
         body: { email, password },
       });
 
-      const nextToken = res?.accessToken ?? res?.token ?? res?.jwt ?? "";
+      const nextToken = res?.accessToken ?? "";
       setToken(nextToken);
-
-      if (!nextToken) {
-        setError("Login succeeded but token was not found in the response.");
-      } else {
-        setSelectedOrder(null);
-        await loadOrders(nextToken);
-      }
     } catch (e) {
       setToken("");
       setError(e?.message ?? "Login failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function register() {
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: { email, password },
+      });
+
+      setSuccess("User created successfully. You can now log in.");
+      setMode("login");
+      setPassword("");
+    } catch (e) {
+      setError(e?.message ?? "Registration failed");
     } finally {
       setBusy(false);
     }
@@ -124,14 +140,14 @@ export default function App() {
     setOrders([]);
     setSelectedOrder(null);
     setError("");
+    setSuccess("");
   }
 
-  async function loadOrders(forcedToken) {
-    const t = forcedToken ?? token;
+  async function loadOrders() {
     setBusy(true);
     setError("");
     try {
-      const res = await apiFetch("/api/orders", { token: t });
+      const res = await apiFetch("/api/orders", { token });
       setOrders(Array.isArray(res) ? res : []);
     } catch (e) {
       setError(e?.message ?? "Failed loading orders");
@@ -188,26 +204,21 @@ export default function App() {
             <p>Minimal React client for login and orders.</p>
           </div>
 
-          <div className="pill">
-            <span className="kv">
-              <span className="muted">API</span>
-              <span className="mono">{apiBaseUrl}</span>
-            </span>
-            {isAuthed ? (
-              <button className="btn" onClick={logout} disabled={busy}>
-                Logout
-              </button>
-            ) : null}
-          </div>
+          {isAuthed ? (
+            <button className="btn" onClick={logout} disabled={busy}>
+              Logout
+            </button>
+          ) : null}
         </div>
 
         {error ? <div className="alert">{error}</div> : null}
+        {success ? <div className="alert success">{success}</div> : null}
 
         {!isAuthed ? (
-          <div className="card" style={{ maxWidth: 520 }}>
+          <div className="card" style={{ maxWidth: 480 }}>
             <div className="card-body">
               <div className="card-title">
-                <h2>Login</h2>
+                <h2>{mode === "login" ? "Login" : "Register"}</h2>
               </div>
 
               <div className="form">
@@ -221,9 +232,25 @@ export default function App() {
                   <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
 
-                <button className="btn btn-primary" onClick={login} disabled={busy}>
-                  {busy ? "Working..." : "Login"}
-                </button>
+                {mode === "login" ? (
+                  <>
+                    <button className="btn btn-primary" onClick={login} disabled={busy}>
+                      {busy ? "Working..." : "Login"}
+                    </button>
+                    <button className="btn link" onClick={() => setMode("register")} disabled={busy}>
+                      Create account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn btn-primary" onClick={register} disabled={busy}>
+                      {busy ? "Working..." : "Register"}
+                    </button>
+                    <button className="btn link" onClick={() => setMode("login")} disabled={busy}>
+                      Back to login
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

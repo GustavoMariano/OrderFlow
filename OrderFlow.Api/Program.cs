@@ -14,12 +14,22 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var corsPolicyName = "OrderFlowWeb";
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicyName, policy =>
     {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+        else
+        {
+            policy.SetIsOriginAllowed(_ => true);
+        }
+
         policy
-            .WithOrigins("http://localhost:5173")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -33,10 +43,10 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseCors(corsPolicyName);
+
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseCors(corsPolicyName);
 
 app.MapControllers();
 

@@ -45,10 +45,15 @@ services:
       Mongo__Database: orderflow
 
       RabbitMQ__HostName: rabbitmq
+      RabbitMQ__Port: 5672
       RabbitMQ__UserName: orderflow
       RabbitMQ__Password: orderflow
+      RabbitMQ__Exchange: orderflow.orders
 
       Jwt__SigningKey: SUPER_SECRET_KEY_12345678901234567890
+
+      Cors__AllowedOrigins__0: http://localhost:8080
+      Cors__AllowedOrigins__1: http://localhost:5173
     ports:
       - "5000:8080"
 
@@ -68,10 +73,24 @@ services:
       Mongo__Database: orderflow
 
       RabbitMQ__HostName: rabbitmq
+      RabbitMQ__Port: 5672
       RabbitMQ__UserName: orderflow
       RabbitMQ__Password: orderflow
+      RabbitMQ__Exchange: orderflow.orders
 
       Jwt__SigningKey: SUPER_SECRET_KEY_12345678901234567890
+
+  web:
+    build:
+      context: ./orderflow-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:5000
+    container_name: orderflow-web
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
 
 volumes:
   postgres_data:
