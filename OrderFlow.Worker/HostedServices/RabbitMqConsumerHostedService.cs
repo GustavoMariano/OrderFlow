@@ -7,9 +7,7 @@ public sealed class RabbitMqConsumerHostedService : BackgroundService
     private readonly Consumers.OrderCreatedConsumer _consumer;
     private readonly ILogger<RabbitMqConsumerHostedService> _logger;
 
-    public RabbitMqConsumerHostedService(
-        Consumers.OrderCreatedConsumer consumer,
-        ILogger<RabbitMqConsumerHostedService> logger)
+    public RabbitMqConsumerHostedService(Consumers.OrderCreatedConsumer consumer, ILogger<RabbitMqConsumerHostedService> logger)
     {
         _consumer = consumer;
         _logger = logger;
@@ -24,36 +22,76 @@ public sealed class RabbitMqConsumerHostedService : BackgroundService
             try
             {
                 attempt++;
+
                 _logger.LogInformation("Starting RabbitMQ consumer (attempt {Attempt})...", attempt);
 
                 await _consumer.StartAsync(stoppingToken);
 
                 _logger.LogInformation("RabbitMQ consumer started successfully.");
-                await Task.Delay(Timeout.Infinite, stoppingToken);
+
+                await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                // shutdown normal
                 return;
             }
             catch (BrokerUnreachableException ex)
             {
-                var delay = TimeSpan.FromSeconds(Math.Min(30, 2 * attempt));
-                _logger.LogWarning(ex, "RabbitMQ unreachable. Retrying in {DelaySeconds}s...", delay.TotalSeconds);
+                await DisposeConsumerSilentlyAsync();
+
+                var delay = GetBackoffDelay(attempt);
+                _logger.LogWarning(
+                    ex,
+                    "RabbitMQ unreachable. Retrying in {DelaySeconds}s (attempt {Attempt})...",
+                    delay.TotalSeconds,
+                    attempt);
+
                 await Task.Delay(delay, stoppingToken);
             }
             catch (ConnectFailureException ex)
             {
-                var delay = TimeSpan.FromSeconds(Math.Min(30, 2 * attempt));
-                _logger.LogWarning(ex, "RabbitMQ connection failed. Retrying in {DelaySeconds}s...", delay.TotalSeconds);
+                await DisposeConsumerSilentlyAsync();
+
+                var delay = GetBackoffDelay(attempt);
+                _logger.LogWarning(
+                    ex,
+                    "RabbitMQ connection failed. Retrying in {DelaySeconds}s (attempt {Attempt})...",
+                    delay.TotalSeconds,
+                    attempt);
+
                 await Task.Delay(delay, stoppingToken);
             }
             catch (Exception ex)
             {
+                await DisposeConsumerSilentlyAsync();
+
                 var delay = TimeSpan.FromSeconds(10);
-                _logger.LogError(ex, "Unexpected error starting consumer. Retrying in {DelaySeconds}s...", delay.TotalSeconds);
+                _logger.LogError(
+                    ex,
+                    "Unexpected error starting consumer. Retrying in {DelaySeconds}s (attempt {Attempt})...",
+                    delay.TotalSeconds,
+                    attempt);
+
                 await Task.Delay(delay, stoppingToken);
             }
+        }
+    }
+
+    private static TimeSpan GetBackoffDelay(int attempt)
+    {
+        var baseSeconds = Math.Min(30, 2 * attempt);
+        var jitterSeconds = Random.Shared.NextDouble();
+        return TimeSpan.FromSeconds(baseSeconds + jitterSeconds);
+    }
+
+    private async Task DisposeConsumerSilentlyAsync()
+    {
+        try
+        {
+            await _consumer.DisposeAsync();
+        }
+        catch
+        {
         }
     }
 }
