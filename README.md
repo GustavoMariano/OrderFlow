@@ -111,12 +111,6 @@ Password: `orderflow`
 
 ## Frontend
 
-```bash
-cd orderflow-web
-npm install
-npm run dev
-```
-
 Open:
 
 ```
